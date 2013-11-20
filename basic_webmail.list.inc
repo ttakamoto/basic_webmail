@@ -22,6 +22,7 @@ function basic_webmail_message_list($folder = 'INBOX') {
   if (empty($folder)) {
     $folder = 'INBOX';
   }
+  $folder = str_replace('\\', '/', $folder);
   return drupal_get_form('basic_webmail_mail_list_form', $folder);
 }
 
@@ -279,6 +280,8 @@ function _basic_webmail_prepare_folder_list($folder_list, $folder = 'INBOX') {
   foreach ($folder_list as $folder_name) {
     // Get the name for the current folder.
     $brief_folder_name = imap_utf7_decode(drupal_substr($folder_name, strpos($folder_name, '}'), drupal_strlen($folder_name)));
+    // Replaces the "/" char that gmails use to an \ for URL parse
+    $brief_folder_name = str_replace('/', '\\', $brief_folder_name);
     // Add the folder to the list with a link.
     $output .= l($brief_folder_name, 'basic_webmail/list/' . $brief_folder_name) . '&nbsp; -- &nbsp;';
   }
