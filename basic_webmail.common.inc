@@ -209,6 +209,13 @@ function _basic_webmail_prepare_email_string($string, $char_set = 'UTF-8') {
  *   The converted string.
  */
 function _basic_webmail_decode_mime_str($string, $char_set = 'UTF-8') {
+  if (!defined('PHP_VERSION_ID')) {
+    $version = explode('.',PHP_VERSION);
+    define('PHP_VERSION_ID', ($version[0] * 10000 + $version[1] * 100 + $version[2]));
+  }
+  if (PHP_VERSION_ID >= 50302) { // eg. PHP_VERSION > 5.3.2
+    return $string;
+  }
   $new_string = '';
   $elements = imap_mime_header_decode($string);
 
