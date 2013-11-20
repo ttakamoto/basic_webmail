@@ -307,7 +307,6 @@ function _basic_webmail_create_message_list_header() {
   // Specify the header information for the message list.
   return array(
     'message_unread' => array('data' => t('Read'), 'field' => 'message_unread'),
-    'attachment_exists' => array('data' => t('Att.'), 'field' => 'attachment_exists'),
     'message_answered' => array('data' => t('Ans.'), 'field' => 'message_answered'),
     'message_subject' => array('data' => t('Subject'), 'field' => 'message_subject'),
     'from_address' => array('data' => t('From'), 'field' => 'from_address'),
@@ -350,16 +349,115 @@ function _basic_webmail_update_stored_message_list($folder = 'INBOX') {
 
   if (imap_num_msg($imap_resource) > 0) {
     // Retrieve and display the mail in the current folder.
-    $threads = imap_thread($imap_resource);
-    if ($threads === FALSE) {
+    $thread = imap_thread($imap_resource);
+    if ($thread === FALSE) {
       // Report the error.
       $message = t('There was an error getting the list of messages.');
       _basic_webmail_report_error($message, array(), WATCHDOG_ERROR, TRUE);
       return;
     }
     else {
+      $root = 0; 
+      $rootValues = array(); 
+      $threads = array();
+      // source: http://php.net/manual/en/function.imap-thread.php (comments)
+      // First we find the root (or parent) value for each email in the thread 
+      // we ignore emails that have no root value except those that are infact 
+      // the root of a thread 
+      // we want to gather the message IDs in a way where we can get the details of 
+      // all emails on one call rather than individual calls ( for performance ) 
+
+      foreach ($thread as $i => $messageId) {
+        //get sequence and type 
+        list($sequence, $type) = explode('.', $i);
+
+        //if type is not num or messageId is 0 or (start of a new thread and no next) or is already set 
+        if ($type != 'num' || $messageId == 0 || isset($rootValues[$messageId])) {
+          //ignore it 
+          continue;
+        }
+        //if this is the start of a new thread 
+        if ($root == 0) {
+          //set root 
+          $root = $messageId;
+        }
+        //at this point this will be part of a thread 
+        //let's remember the root for this email 
+        $rootValues[$messageId] = $root;
+
+        //if there is no next 
+        if ($thread[$sequence . '.next'] == 0) {
+          //reset root 
+          $root = 0;
+        }
+      }
+      //now get all the emails details in rootValues in one call 
+      //because one call for 1000 rows to a server is better 
+      //than calling the server 1000 times  
+      $emails = imap_fetch_overview($imap_resource, implode(',', array_keys($rootValues))); 
+
+      //foreach email 
+      foreach ($emails as $email) {
+        //get root 
+        $root = $rootValues[$email->msgno];
+
+        //add to threads 
+        $threads[$root] = $email;
+      }
+      /*
       // Save the message information in a temporary table.
-      foreach ($threads as $key => $message_number) {
+      foreach ($threads as $key => $message) {
+        // Make sure the message is not marked as deleted.
+        if ($message->deleted == 0) {
+          // Set the read status.
+          if ($message->recent == 0 || $message->seen == 0) {
+            $message_unread = 1;
+          } else {
+            $message_unread = 0;
+          }
+  
+          // Process the message's subject for storage in the database.
+          if (!empty($message->subject)) {
+            $message_subject = _basic_webmail_process_subject($message->subject, $message_unread, $key, $folder);
+          } else {
+            $message_subject = _basic_webmail_process_subject('(No subject specified)', $message_unread, $key, $folder);
+          }
+  
+          // Process the message sender for storage in the database.
+          if (empty($message->from)) {
+            $from_address = '';
+          } else {
+            $from_address = _basic_webmail_process_from_address($message->from);
+          }
+
+          // Set the message's date.
+          if (empty($message->date)) {
+            $message_date = 0;
+          } else {
+            $message_date = strtotime($message->date);
+          }
+
+          // imap_uid($imap_resource, $message_number)
+          $id = db_insert('basic_webmail_messages')
+                  ->fields(array(
+                      'user_id' => $user->uid,
+                      'message_number' => $key,
+                      'message_subject' => $message_subject,
+                      'from_address' => $from_address,
+                      'message_date' => $message_date,
+                      'message_unread' => $message_unread,
+                      'message_answered' => $message->answered,
+                  ))
+                  ->execute();
+        }
+      }
+       * 
+       */
+     
+
+
+      // Save the message information in a temporary table.
+      foreach ($thread as $key => $message_number) {
         $tree = explode('.', $key);
         if ($tree[1] == 'num' && $message_number > 0) {
           // Get the messages information from the header.
@@ -438,7 +536,9 @@ function _basic_webmail_update_stored_message_list($folder = 'INBOX') {
               ->execute();
           }
         }
-      }
+      } 
+       
+      //*/
     }
   }
 
@@ -475,7 +575,6 @@ function _basic_webmail_get_message_list_data($header, $user_id) {
     ->fields('m', array(
       'message_number',
       'message_unread',
-      'attachment_exists',
       'message_answered',
       'message_subject',
       'from_address',
@@ -492,7 +591,6 @@ function _basic_webmail_get_message_list_data($header, $user_id) {
   foreach ($result as $message) {
     // Initialize variables.
     $message_unread = '';
-    $message_attachment = '';
     $message_answered = '';
     $message_date = '(Invalid date.)';
 
@@ -510,16 +608,6 @@ function _basic_webmail_get_message_list_data($header, $user_id) {
         'path' => $icon_path . 'mini-mail-open.png',
         'alt' => 'Generic icon indicating message is read.',
         'title' => t('You have read this message.'),
-        'attributes' => array(),
-      ));
-    }
-
-    // If the message has an attachment, show the icon.
-    if (!empty($message->attachment_exists)) {
-      $message_attachment = theme_image(array(
-        'path' => $icon_path . 'mini-doc.png',
-        'alt' => 'Generic icon indicating message has an attachment.',
-        'title' => t('This message has one or more attachments.'),
         'attributes' => array(),
       ));
     }
@@ -551,7 +639,6 @@ function _basic_webmail_get_message_list_data($header, $user_id) {
 
     $message_list[$message->message_number] = array(
       'message_unread' => $message_unread,
-      'attachment_exists' => $message_attachment,
       'message_answered' => $message_answered,
       'message_subject' => $message->message_subject,
       'from_address' => $message->from_address,

@@ -48,12 +48,11 @@ function basic_webmail_schema() {
         'not null' => FALSE,
         'description' => 'TRUE if the message is unread.',
       ),
-      'attachment_exists' => array(
-        'type' => 'int',
-        'size' => 'tiny',
-        'unsigned' => TRUE,
+      'folder' => array(
+        'type' => 'varchar',
+        'size' => 256,
         'not null' => FALSE,
-        'description' => 'TRUE if there are any attachments.',
+        'description' => 'Folder from where the message belongs.',
       ),
       'message_answered' => array(
         'type' => 'int',
