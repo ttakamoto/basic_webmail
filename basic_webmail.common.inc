@@ -563,6 +563,9 @@ function _basic_webmail_mail_mimesplit($header, $body) {
   // insensitive), followed by any character other than '"' one or more times,
   // followed by '"'.
   $pattern = '~.*boundary="[^"]+"~i';
+  if (strpos($header, 'boundary="') == FALSE) {
+    $pattern = '~.*boundary=[0-9]+~i';    
+  }
   // Search the message header for the message part boundary definition, which
   // is what $pattern describes, and save the results in $regs.
   if (preg_match($pattern, $header, $regs)) {
@@ -570,6 +573,9 @@ function _basic_webmail_mail_mimesplit($header, $body) {
     // with PCRE as it was originally intended to work in POSIX, so I've
     // created this interim step, which ends up producing the desired results.
     $interim_pattern = '~"[^"]+"~';
+    if (strpos($header, 'boundary="') == FALSE) {
+      $interim_pattern = '~[0-9]+~i';    
+    }
     preg_match($interim_pattern, $regs[0], $interim_results);
     // Save the actual boundary from the results.
     $boundary = drupal_substr($interim_results[0], 1, drupal_strlen($interim_results[0]) - 2);
