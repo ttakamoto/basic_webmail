@@ -194,6 +194,26 @@ function basic_webmail_admin_settings($form, &$form_state) {
     '#default_value' => variable_get('basic_webmail_use_tls', 0),
     '#description' => t('Use TLS to connect to the server.'),
   );
+  
+  // Enable content block for inbox/sent visibility
+  $form['basic_webmail_features_visibility'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Features Visibility'),
+    '#collapsible' => TRUE,
+    '#collapsed' => FALSE,
+  );
+  $form['basic_webmail_features_visibility']['basic_webmail_enable_block'] = array(
+    '#type' => 'checkbox',
+    '#title' => t("Enable a block that can be displayed with latest received/sent emails from current user."),
+    '#default_value' => variable_get('basic_webmail_enable_block', 0),
+    '#description' => t("This block will be visible at the Structure->Blocks management page and can be placed anywhere in the site. It will be visible only for authenticated users and only for those that already filled the credencials at /user/UID/edit or My Account->Edit.")
+  );
+  $form['basic_webmail_features_visibility']['basic_webmail_disable_email_menu'] = array(
+    '#type' => 'checkbox',
+    '#title' => t("Disable the 'Email' menu at the Navigator menu."),
+    '#default_value' => variable_get('basic_webmail_disable_email_menu', 0),
+    '#description' => t("If for some reason you don't want to display the Email menu at your navigation, you can simply check this box. Please make sure that after saving this settings, go to Configuration->Development->Performance and Clear all the caches that is also including the menu caches.")
+  );
 
   return system_settings_form($form);
 }

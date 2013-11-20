@@ -666,3 +666,34 @@ function _basic_webmail_mailbox_exists($imap_resource, $mailbox) {
 
   return $mailbox_exists;
 }
+
+/*
+ * Generate the block content for received/sent emails.
+ *
+ * @return string
+ *   Returns a HTML content after beind parsed using theme function and the
+ * specific template file.
+ */
+function _basic_webmail_block_content() {
+  $received_sent_emails = _basic_webmail_get_latest_received_sent_emails();
+  return theme('basic_webmail_block_content_theme',$received_sent_emails);
+}
+
+/*
+ * Generate an array with the last # received/sent emails from mailbox
+ *
+ * @return array
+ *   Returns array with the received/sent content. If no new email was found, 
+ *   the array structure will remain the same but with no childrens.
+ */
+function _basic_webmail_get_latest_received_sent_emails($limit = 5) {
+  
+  return array(
+      'received' => array(
+          array('date' => 'hoje','header' => 'enrolacao','from' => 'alguem')
+      ),
+      'sent' => array(),
+  );
+}
+
+
