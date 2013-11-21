@@ -292,10 +292,14 @@ function basic_webmail_theme() {
  * Implement hook_block_info().
  */
 function basic_webmail_block_info() {
-  $blocks['basic_webmail_block'] = array(
-    'info' => t('Basic webmail viewer block')
-    //'cache' => DRUPAL_CACHE_PER_ROLE -> Default
-  );
+  $blocks = array();
+  
+  if (variable_get('basic_webmail_enable_block', 0) == 1) {
+    $blocks['basic_webmail_block'] = array(
+      'info' => t('Basic webmail viewer block')
+      //'cache' => DRUPAL_CACHE_PER_ROLE -> Default
+    );
+  }  
   return $blocks;
 }
 
@@ -306,9 +310,11 @@ function basic_webmail_block_view($delta) {
   $block = array();
   switch ($delta) {
     case 'basic_webmail_block':
-      include_once drupal_get_path('module', 'basic_webmail') . '/basic_webmail.common.inc';
-      $block['subject'] = t('Webmail viewer');
-      $block['content'] = _basic_webmail_block_content();
+       if (variable_get('basic_webmail_enable_block', 0) == 1) {
+        include_once drupal_get_path('module', 'basic_webmail') . '/basic_webmail.common.inc';
+        $block['subject'] = t('Webmail viewer');
+        $block['content'] = _basic_webmail_block_content();
+      }  
       break;
   }
   return $block;
