@@ -50,18 +50,11 @@ function basic_webmail_schema() {
       ),
       'folder' => array(
         'type' => 'varchar',
-        'size' => 256,
+        'length' => 256,
         'not null' => FALSE,
         'description' => 'Folder from where the message belongs.',
       ),
-      'message_answered' => array(
-        'type' => 'int',
-        'size' => 'tiny',
-        'unsigned' => TRUE,
-        'not null' => FALSE,
-        'description' => 'TRUE if the message was replied to.',
-      ),
-    ),
+    )
   );
 
   return $schema;

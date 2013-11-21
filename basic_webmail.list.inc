@@ -98,7 +98,7 @@ function basic_webmail_mail_list_form($form, &$form_state, $folder = 'INBOX') {
   _basic_webmail_update_stored_message_list($folder);
 
   // Get the message list.
-  $message_list = _basic_webmail_get_message_list_data($header, $user->uid);
+  $message_list = _basic_webmail_get_message_list_data($header, $user->uid, $folder);
 
   $form['message_list_title'] = array(
     '#type' => 'item',
@@ -307,7 +307,6 @@ function _basic_webmail_create_message_list_header() {
   // Specify the header information for the message list.
   return array(
     'message_unread' => array('data' => t('Read'), 'field' => 'message_unread'),
-    'message_answered' => array('data' => t('Ans.'), 'field' => 'message_answered'),
     'message_subject' => array('data' => t('Subject'), 'field' => 'message_subject'),
     'from_address' => array('data' => t('From'), 'field' => 'from_address'),
     'message_date' => array(
@@ -345,6 +344,7 @@ function _basic_webmail_update_stored_message_list($folder = 'INBOX') {
   // Remove the existing saved messages.
   db_delete('basic_webmail_messages')
     ->condition('user_id', $user->uid)
+    ->condition('folder', urlencode($folder))      
     ->execute();
 
   if (imap_num_msg($imap_resource) > 0) {
@@ -446,7 +446,7 @@ function _basic_webmail_update_stored_message_list($folder = 'INBOX') {
                       'from_address' => $from_address,
                       'message_date' => $message_date,
                       'message_unread' => $message_unread,
-                      'message_answered' => $message->answered,
+                      'folder' => urlencode($folder),
                   ))
                   ->execute();
         }
@@ -470,11 +470,13 @@ function _basic_webmail_update_stored_message_list($folder = 'INBOX') {
  *   _basic_webmail_create_message_list_header().
  * @param integer $user_id
  *   The ID for the user to gather messages for.
+ * @param folder
+ *   The folder mailbox
  *
  * @return array
  *   The list of messages.
  */
-function _basic_webmail_get_message_list_data($header, $user_id) {
+function _basic_webmail_get_message_list_data($header, $user_id, $folder) {
   // Initialize variables.
   $message_list = array();
   $icon_path = drupal_get_path('module', 'basic_webmail') . '/images/';
@@ -487,12 +489,12 @@ function _basic_webmail_get_message_list_data($header, $user_id) {
     ->fields('m', array(
       'message_number',
       'message_unread',
-      'message_answered',
       'message_subject',
       'from_address',
       'message_date',
     ))
     ->condition('user_id', $user_id, '=')
+    ->condition('folder', urlencode($folder), '=')
     ->extend('PagerDefault')
     ->limit($row_limit)
     ->extend('TableSort')
@@ -503,7 +505,6 @@ function _basic_webmail_get_message_list_data($header, $user_id) {
   foreach ($result as $message) {
     // Initialize variables.
     $message_unread = '';
-    $message_answered = '';
     $message_date = '(Invalid date.)';
 
     // If the message is unread, show the icon.
@@ -520,16 +521,6 @@ function _basic_webmail_get_message_list_data($header, $user_id) {
         'path' => $icon_path . 'mini-mail-open.png',
         'alt' => 'Generic icon indicating message is read.',
         'title' => t('You have read this message.'),
-        'attributes' => array(),
-      ));
-    }
-
-    // If the message has been answered, show the icon.
-    if (!empty($message->message_answered)) {
-      $message_answered = theme_image(array(
-        'path' => $icon_path . 'mini-edit.png',
-        'alt' => 'Generic icon indicating message has been answered.',
-        'title' => t('You have replied to this message.'),
         'attributes' => array(),
       ));
     }
@@ -551,7 +542,6 @@ function _basic_webmail_get_message_list_data($header, $user_id) {
 
     $message_list[$message->message_number] = array(
       'message_unread' => $message_unread,
-      'message_answered' => $message_answered,
       'message_subject' => $message->message_subject,
       'from_address' => $message->from_address,
       'message_date' => $message_date,
