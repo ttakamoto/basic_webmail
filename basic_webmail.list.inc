@@ -404,13 +404,13 @@ function _basic_webmail_update_stored_message_list($folder = 'INBOX') {
         //add to threads 
         $threads[$root] = $email;
       }
-      /*
+      
       // Save the message information in a temporary table.
       foreach ($threads as $key => $message) {
         // Make sure the message is not marked as deleted.
         if ($message->deleted == 0) {
           // Set the read status.
-          if ($message->recent == 0 || $message->seen == 0) {
+          if ($message->seen == 0) {
             $message_unread = 1;
           } else {
             $message_unread = 0;
@@ -427,7 +427,7 @@ function _basic_webmail_update_stored_message_list($folder = 'INBOX') {
           if (empty($message->from)) {
             $from_address = '';
           } else {
-            $from_address = _basic_webmail_process_from_address($message->from);
+            $from_address = $message->from;
           }
 
           // Set the message's date.
@@ -451,94 +451,6 @@ function _basic_webmail_update_stored_message_list($folder = 'INBOX') {
                   ->execute();
         }
       }
-       * 
-       */
-     
-
-
-      // Save the message information in a temporary table.
-      foreach ($thread as $key => $message_number) {
-        $tree = explode('.', $key);
-        if ($tree[1] == 'num' && $message_number > 0) {
-          // Get the messages information from the header.
-          $message_header = imap_headerinfo($imap_resource, $message_number);
-
-          // Make sure the message is not marked as deleted.
-          if ($message_header->Deleted == ' ') {
-            // Set the read status.
-            if ($message_header->Recent == 'N' || $message_header->Unseen == 'U') {
-              $message_unread = 1;
-            }
-            else {
-              $message_unread = 0;
-            }
-
-            // Process the message's subject for storage in the database.
-            if (!empty($message_header->subject)) {
-              $message_subject = _basic_webmail_process_subject($message_header->subject, $message_unread, $message_number, $folder);
-            }
-            else {
-              $message_subject = _basic_webmail_process_subject('(No subject specified)', $message_unread, $message_number, $folder);
-            }
-
-            // Process the message sender for storage in the database.
-            if (empty($message_header->from[0])) {
-              $from_address = '';
-            }
-            else {
-              $from_address = _basic_webmail_process_from_address($message_header->from[0]);
-            }
-
-            // Set the message's date.
-            if (empty($message_header->date)) {
-              $message_date = 0;
-            }
-            else {
-              $message_date = strtotime($message_header->date);
-            }
-
-            // Check if message was answered.
-            if ($message_header->Answered == 'A') {
-              $message_answered = 1;
-            }
-            else {
-              $message_answered = 0;
-            }
-
-            // Check for attachments.
-            // Get the message parts list.
-            $parts_list = _basic_webmail_get_parts_list($imap_resource, $message_number);
-            if (!empty($parts_list)) {
-              // Iterate over the parts list.
-              foreach ($parts_list as $part_array) {
-                if (!empty($part_array[0]) && !empty($part_array[1])) {
-                  $attachment_exists = 1;
-                  continue;
-                }
-                else {
-                  $attachment_exists = 0;
-                }
-              }
-            }
-
-            // imap_uid($imap_resource, $message_number)
-            $id = db_insert('basic_webmail_messages')
-              ->fields(array(
-                'user_id' => $user->uid,
-                'message_number' => $message_number,
-                'message_subject' => $message_subject,
-                'from_address' => $from_address,
-                'message_date' => $message_date,
-                'message_unread' => $message_unread,
-                'message_answered' => $message_answered,
-                'attachment_exists' => $attachment_exists,
-              ))
-              ->execute();
-          }
-        }
-      } 
-       
-      //*/
     }
   }
 
@@ -1007,39 +919,4 @@ function _basic_webmail_process_subject($subject, $new_or_unread, $message_numbe
   }
 
   return $message_subject;
-}
-
-
-/**
- * Processes the address of the messasge sender for storage in the database.
- *
- * @param object $from
- *   The sender of the message.
- *
- * @return string
- *   The address of the sender processed as a link for display and for storage
- *   in the database.
- */
-function _basic_webmail_process_from_address($from) {
-  if (empty($from->mailbox) && empty($from->host)) {
-    // If the sender's mailbox and host are blank set a generic from name.
-    $from_address = '(Unknown)';
-  }
-  elseif (!empty($from->personal)) {
-    $link_name = _basic_webmail_prepare_email_string($from->personal);
-
-    $from_address = l($link_name, 'basic_webmail/sendmail/' . $link_name . ' <' . $from->mailbox . '@' . $from->host . '>');
-
-    if (drupal_strlen($from_address) > 255) {
-      // Make the display name only the length of the available field size,
-      // accounting for the ellipsis.
-      $display_name = truncate_utf8($link_name, drupal_strlen($from_address) - 258, TRUE, TRUE);
-      $from_address = l($display_name, 'basic_webmail/sendmail/' . $link_name . ' <' . $from->mailbox . '@' . $from->host . '>');
-    }
-  }
-  else {
-    $from_address = l($from->mailbox . '@' . $from->host, 'basic_webmail/sendmail/' . $from->mailbox . '@' . $from->host);
-  }
-
-  return $from_address;
 }
