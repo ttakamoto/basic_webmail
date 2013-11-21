@@ -294,7 +294,7 @@ function basic_webmail_theme() {
 function basic_webmail_block_info() {
   $blocks = array();
   
-  if (variable_get('basic_webmail_enable_block', 0) == 1) {
+  if (variable_get('basic_webmail_enable_block', 0) == 1 &&  user_is_logged_in()) {
     $blocks['basic_webmail_block'] = array(
       'info' => t('Basic webmail viewer block')
       //'cache' => DRUPAL_CACHE_PER_ROLE -> Default
@@ -310,7 +310,7 @@ function basic_webmail_block_view($delta) {
   $block = array();
   switch ($delta) {
     case 'basic_webmail_block':
-       if (variable_get('basic_webmail_enable_block', 0) == 1) {
+       if (variable_get('basic_webmail_enable_block', 0) == 1 &&  user_is_logged_in()) {
         include_once drupal_get_path('module', 'basic_webmail') . '/basic_webmail.common.inc';
         $block['subject'] = t('Webmail viewer');
         $block['content'] = _basic_webmail_block_content();
