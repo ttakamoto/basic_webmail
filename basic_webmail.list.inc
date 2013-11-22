@@ -185,16 +185,23 @@ function _basic_webmail_retrieve_last_messages($num = 5) {
 
   // Get the list of folders.
   $inbox_folder = 'INBOX';
-  $folder_list = _basic_webmail_get_folder_list($inbox_folder);
   $sent_folder = variable_get('basic_webmail_current_sent_folder', 'Sent Mail');
+  
+  // Verify if we are getting content from cached tables or retrieving from server.
+  $last_pull = variable_get('basic_webmail_block_content_last_pull_timestamp', NULL);
+  $is_caching = variable_get('basic_webmail_cache_block_content', 0);
+  if ($is_caching == 0 || $last_pull == NULL || (time() - $last_pull > $is_caching)) {
+    $folder_list = _basic_webmail_get_folder_list($inbox_folder);
+    $sent_folder = variable_get('basic_webmail_current_sent_folder', 'Sent Mail');
+  
+    // Update the saved message information.
+    _basic_webmail_update_stored_message_list($inbox_folder);
+    _basic_webmail_update_stored_message_list($sent_folder);
+  }
   
   // Create the table header for the message listing.
   $header = _basic_webmail_create_message_list_header();
   
-  // Update the saved message information.
-  _basic_webmail_update_stored_message_list($inbox_folder);
-  _basic_webmail_update_stored_message_list($sent_folder);
-
   // Get the message list.
   $inbox_message_list = _basic_webmail_get_message_list_data($header, $user->uid, $inbox_folder, $num);
   $sent_message_list = _basic_webmail_get_message_list_data($header, $user->uid, $sent_folder, $num);
@@ -512,6 +519,7 @@ function _basic_webmail_update_stored_message_list($folder = 'INBOX') {
         }
       }
     }
+    variable_set('basic_webmail_block_content_last_pull_timestamp', time());
     error_reporting(0);
   }
 

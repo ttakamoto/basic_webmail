@@ -208,6 +208,12 @@ function basic_webmail_admin_settings($form, &$form_state) {
     '#default_value' => variable_get('basic_webmail_enable_block', 0),
     '#description' => t("This block will be visible at the Structure->Blocks management page and can be placed anywhere in the site. It will be visible only for authenticated users and only for those that already filled the credencials at /user/UID/edit or My Account->Edit.")
   );
+  $form['basic_webmail_features_visibility']['basic_webmail_cache_block_content'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Caching the inbox/sent messages'),
+    '#default_value' => variable_get('basic_webmail_cache_block_content', 0),
+    '#description' => t('Provide how many seconds the module can retrieve messages from the cache instead of pulling from IMAP Server. If left as 0(empty) the block will always get information from the IMAP mail server.'),
+  );
   $form['basic_webmail_features_visibility']['basic_webmail_disable_email_menu'] = array(
     '#type' => 'checkbox',
     '#title' => t("Disable the 'Email' menu at the Navigator menu."),

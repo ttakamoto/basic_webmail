@@ -31,17 +31,22 @@
  */
 
 ?>
-
-<p><b>Inbox</b></p>
+<style>
+  #block-basic-webmail-basic-webmail-block li a{
+    float:none;
+    display:inline;
+  }
+</style>  
+<p><h3>Inbox</h3></p>
 <ul>
   <?php foreach($inbox as $msg): ?>
-  <li><b>Date:</b><?php print $msg['message_date'];?>  <b>Header:</b><?php print $msg['message_subject'];?>  <b>From:</b><?php print $msg['from_address'];?></li>
+  <li><b><?php print $msg['message_date'];?></b> | <span alt='<?php print $msg['from_address'];?>'><?php print $msg['message_subject'];?></span></li>
   <?php endforeach; ?>
 </ul>
 
-<p><b>Sent</b></p>
+<p><h3>Sent</h3></p>
 <ul>
   <?php foreach($sent as $msg): ?>
-  <li><b>Date:</b><?php print $msg['message_date'];?>  <b>Header:</b><?php print $msg['message_subject'];?>  <b>From:</b><?php print $msg['from_address'];?></li>
+  <li><b><?php print $msg['message_date'];?></b> | <span alt='<?php print $msg['from_address'];?>'><?php print $msg['message_subject'];?></span></li>
   <?php endforeach; ?>
 </ul>
