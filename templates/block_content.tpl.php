@@ -1,30 +1,30 @@
 <?php
 /* arrays structure received
  * 
- * received = array(
+ * inbox = array(
  *   [0] = array(
- *     'header' = string,
- *     'date' = string, 
- *     'from' = string,
+ *     'message_subject' = string,
+ *     'message_date' = string, 
+ *     'from_address' = string,
  *   )
  *   [1] = array(
- *     'header' = string,
- *     'date' = string, 
- *     'from' = string,
+ *     'message_subject' = string,
+ *     'message_date' = string, 
+ *     'from_address' = string,
  *   )
  *   ...
  * );
  *  
  * sent = array(
  *   [0] = array(
- *     'header' = string,
- *     'date' = string, 
- *     'from' = string,
+ *     'message_subject' = string,
+ *     'message_message_date' = string, 
+ *     'from_address' = string,
  *   )
  *   [1] = array(
- *     'header' = string,
- *     'date' = string, 
- *     'from' = string,
+ *     'message_subject' = string,
+ *     'message_date' = string, 
+ *     'from_address' = string,
  *   )
  *   ...
  * ); 
@@ -34,14 +34,14 @@
 
 <p><b>Inbox</b></p>
 <ul>
-  <?php foreach($received as $msg): ?>
-  <li><b>Date:</b><?php print $msg['date'];?>  <b>Header:</b><?php print $msg['header'];?>  <b>From:</b><?php print $msg['from'];?></li>
+  <?php foreach($inbox as $msg): ?>
+  <li><b>Date:</b><?php print $msg['message_date'];?>  <b>Header:</b><?php print $msg['message_subject'];?>  <b>From:</b><?php print $msg['from_address'];?></li>
   <?php endforeach; ?>
 </ul>
 
 <p><b>Sent</b></p>
 <ul>
   <?php foreach($sent as $msg): ?>
-  <li><b>Date:</b><?php print $msg['date'];?>  <b>Header:</b><?php print $msg['header'];?>  <b>From:</b><?php print $msg['from'];?></li>
+  <li><b>Date:</b><?php print $msg['message_date'];?>  <b>Header:</b><?php print $msg['message_subject'];?>  <b>From:</b><?php print $msg['from_address'];?></li>
   <?php endforeach; ?>
 </ul>

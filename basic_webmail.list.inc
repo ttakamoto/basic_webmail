@@ -152,6 +152,59 @@ function basic_webmail_mail_list_form($form, &$form_state, $folder = 'INBOX') {
   return $form;
 }
 
+/*
+ * Generate the block content for received/sent emails.
+ *
+ * @return string
+ *   Returns a HTML content after beind parsed using theme function and the
+ * specific template file.
+ */
+function _basic_webmail_block_content($num = 5) {
+  return theme('basic_webmail_block_content_theme',_basic_webmail_retrieve_last_messages($num));
+}
+
+/**
+ * Retrieve the content for block that list last # messages of INBOX/Sent
+ * mailboxes
+ *
+ * @param int  $num
+ *   number of messages of each mailbox.
+ *
+ * @return array
+ *   The formatted message listing.
+ */
+function _basic_webmail_retrieve_last_messages($num = 5) {
+  global $user;
+  if (empty($user->data['basic_webmail_username'])) {
+    $form['error'] = array(
+      '#type' => 'item',
+      '#markup' => t('You have not configured your settings to use this webmail system. Edit your !account and fill in the necessary fields in the "Basic webmail account settings" group.', array('!account' => l('account settings', 'user'))),
+    );
+    return $form;
+  }
+
+  // Get the list of folders.
+  $inbox_folder = 'INBOX';
+  $folder_list = _basic_webmail_get_folder_list($inbox_folder);
+  $sent_folder = variable_get('basic_webmail_current_sent_folder', 'Sent Mail');
+  
+  // Create the table header for the message listing.
+  $header = _basic_webmail_create_message_list_header();
+  
+  // Update the saved message information.
+  _basic_webmail_update_stored_message_list($inbox_folder);
+  _basic_webmail_update_stored_message_list($sent_folder);
+
+  // Get the message list.
+  $inbox_message_list = _basic_webmail_get_message_list_data($header, $user->uid, $inbox_folder, $num);
+  $sent_message_list = _basic_webmail_get_message_list_data($header, $user->uid, $sent_folder, $num);
+
+  return array(
+    'inbox' => $inbox_message_list,
+    'sent' => $sent_message_list,        
+  );
+}
+
 
 /**
  * Perform an action on a group of messages.
@@ -257,7 +310,15 @@ function _basic_webmail_get_folder_list($folder = 'INBOX') {
     $message = 'There was an error closing the IMAP stream.';
     _basic_webmail_report_error($message, array(), WATCHDOG_WARNING);
   }
-
+  
+  // Setting the current Sent Mail folder since the INBOX folder is already default.
+  variable_set('basic_webmail_current_sent_folder', 'Sent Mail');
+  foreach ($folder_list as $value) {
+    if (strpos($value, 'Sent') != FALSE) {
+      variable_set('basic_webmail_current_sent_folder', $value);
+    }
+  }
+  
   return $folder_list;
 }
 
@@ -366,7 +427,6 @@ function _basic_webmail_update_stored_message_list($folder = 'INBOX') {
       // the root of a thread 
       // we want to gather the message IDs in a way where we can get the details of 
       // all emails on one call rather than individual calls ( for performance ) 
-
       foreach ($thread as $i => $messageId) {
         //get sequence and type 
         list($sequence, $type) = explode('.', $i);
@@ -452,6 +512,7 @@ function _basic_webmail_update_stored_message_list($folder = 'INBOX') {
         }
       }
     }
+    error_reporting(0);
   }
 
   // Clean up.
@@ -472,18 +533,23 @@ function _basic_webmail_update_stored_message_list($folder = 'INBOX') {
  *   The ID for the user to gather messages for.
  * @param folder
  *   The folder mailbox
+ * @param limit
+ *   The limit of messages, if nothing is passed it uses the variable value.
  *
  * @return array
  *   The list of messages.
  */
-function _basic_webmail_get_message_list_data($header, $user_id, $folder) {
+function _basic_webmail_get_message_list_data($header, $user_id, $folder, $limit = null) {
   // Initialize variables.
   $message_list = array();
   $icon_path = drupal_get_path('module', 'basic_webmail') . '/images/';
 
   // Specifiy the number of messages to display on a page.
-  $row_limit = variable_get('basic_webmail_messages_per_page', 25);
-
+  $row_limit = $limit;
+  if($row_limit == null) {
+    variable_get('basic_webmail_messages_per_page', 25);
+  }
+  
   // Construct and execute the database query.
   $result = db_select('basic_webmail_messages', 'm')
     ->fields('m', array(

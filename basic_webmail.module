@@ -311,7 +311,7 @@ function basic_webmail_block_view($delta) {
   switch ($delta) {
     case 'basic_webmail_block':
        if (variable_get('basic_webmail_enable_block', 0) == 1 &&  user_is_logged_in()) {
-        include_once drupal_get_path('module', 'basic_webmail') . '/basic_webmail.common.inc';
+        include_once drupal_get_path('module', 'basic_webmail') . '/basic_webmail.list.inc';
         $block['subject'] = t('Webmail viewer');
         $block['content'] = _basic_webmail_block_content();
       }  
