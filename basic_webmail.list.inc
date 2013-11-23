@@ -202,13 +202,25 @@ function _basic_webmail_retrieve_last_messages($num = 5) {
   // Create the table header for the message listing.
   $header = _basic_webmail_create_message_list_header();
   
+  // Verify if filtering must be done
+  $from = '';
+  if (variable_get('basic_webmail_filter_recent_block_messages') == 1) {
+    include_once drupal_get_path('module', 'basic_webmail') . '/basic_webmail.common.inc';
+    $profile_mail_address = _basic_webmail_is_user_profile_page();
+    if($profile_mail_address != FALSE) {
+      $from = $profile_mail_address;      
+    }
+  }
+  
   // Get the message list.
-  $inbox_message_list = _basic_webmail_get_message_list_data($header, $user->uid, $inbox_folder, $num);
-  $sent_message_list = _basic_webmail_get_message_list_data($header, $user->uid, $sent_folder, $num);
+  $inbox_message_list = _basic_webmail_get_message_list_data($header, $user->uid, $inbox_folder, $num, $from);
+  $sent_message_list = _basic_webmail_get_message_list_data($header, $user->uid, $sent_folder, $num, $from);
 
   return array(
     'inbox' => $inbox_message_list,
-    'sent' => $sent_message_list,        
+    'sent' => $sent_message_list,   
+    'is_filtering' => variable_get('basic_webmail_filter_recent_block_messages'),
+    'from' => $from,  
   );
 }
 
@@ -547,7 +559,7 @@ function _basic_webmail_update_stored_message_list($folder = 'INBOX') {
  * @return array
  *   The list of messages.
  */
-function _basic_webmail_get_message_list_data($header, $user_id, $folder, $limit = null) {
+function _basic_webmail_get_message_list_data($header, $user_id, $folder, $limit = null, $from = '') {
   // Initialize variables.
   $message_list = array();
   $icon_path = drupal_get_path('module', 'basic_webmail') . '/images/';
@@ -569,6 +581,7 @@ function _basic_webmail_get_message_list_data($header, $user_id, $folder, $limit
     ))
     ->condition('user_id', $user_id, '=')
     ->condition('folder', urlencode($folder), '=')
+    ->condition('from_address', '%'. $from .'%', 'LIKE')
     ->extend('PagerDefault')
     ->limit($row_limit)
     ->extend('TableSort')

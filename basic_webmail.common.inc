@@ -697,4 +697,21 @@ function _basic_webmail_mailbox_exists($imap_resource, $mailbox) {
   return $mailbox_exists;
 }
 
+/**
+ * Based on URI, verify if current page is a profile page as /user/UID/edit
+ * 
+ * @return string
+ *   Return the profile email address if its true, and FALSE otherwise.
+ */
+function _basic_webmail_is_user_profile_page() {
+  global $user;
+  $uri = $_SERVER['REQUEST_URI'];
+  $uri_array = explode('/', $uri);
+  if (strpos($uri, 'user') != FALSE && $uri_array[1] == 'user' && $uri_array[2] != $user->uid) {
+    $profile_id = $uri_array[2];  
+    $profile = user_load($profile_id);
+    return $profile->mail;
+  }
+  return FALSE;
+}            
 
