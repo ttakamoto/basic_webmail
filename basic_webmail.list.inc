@@ -555,7 +555,7 @@ function _basic_webmail_get_message_list_data($header, $user_id, $folder, $limit
   // Specifiy the number of messages to display on a page.
   $row_limit = $limit;
   if($row_limit == null) {
-    variable_get('basic_webmail_messages_per_page', 25);
+    $row_limit = variable_get('basic_webmail_messages_per_page', 25);
   }
   
   // Construct and execute the database query.
