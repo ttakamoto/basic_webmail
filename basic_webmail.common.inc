@@ -61,42 +61,78 @@ function _basic_webmail_connect_to_server($user_id, $folder = 'INBOX') {
  *   The string representing the server connection information.
  */
 function _basic_webmail_get_server_string() {
-  // Initialize variable.
-  $server_address = variable_get('basic_webmail_server_address', '');
+  global $user;
+  
+  // If user is allowed to overwrite global settings and already filled
+  // the server address settings, so get user specific settings
+  if (variable_get('basic_webmail_enable_overwrite_server_settings') == 1 
+   && $user->data['basic_webmail_server_address'] != '') {
+    // Initialize variable.
+    $server_address = $user->data['basic_webmail_server_address'];
 
-  // Sanity check -- make sure the admin has done the configuration.
-  if (empty($server_address)) {
-    $message = 'The !server_settings for Basic webmail have not yet been configured. Please do that before checking your e-mail.';
-    $message_parameters = array(
-      '!server_settings' => l(t('server settings'), 'admin/settings/basic_webmail')
-    );
-    _basic_webmail_report_error($message, $message_parameters);
-    return FALSE;
-  }
-
-  // Prepare the flags for connecting to the server with.
-  $imap_flags = '';
-  if (variable_get('basic_webmail_secure_log_in', 0) == 1) {
-    $imap_flags .= '/secure';
-  }
-  if (variable_get('basic_webmail_use_ssl', 0) == 1) {
-    $imap_flags .= '/ssl';
-  }
-  if (variable_get('basic_webmail_validate_cert', 0) == 1) {
-    $imap_flags .= '/validate-cert';
+    // Prepare the flags for connecting to the server with.
+    $imap_flags = '';
+    if ($user->data['basic_webmail_secure_log_in'] == 1) {
+      $imap_flags .= '/secure';
+    }
+    if ($user->data['basic_webmail_use_ssl'] == 1) {
+      $imap_flags .= '/ssl';
+    }
+    if ($user->data['basic_webmail_validate_cert'] == 1) {
+      $imap_flags .= '/validate-cert';
+    }
+    else {
+      $imap_flags .= '/novalidate-cert';
+    }
+    if ($user->data['basic_webmail_use_tls'] == 1) {
+      $imap_flags .= '/tls';
+    }
+    else {
+      $imap_flags .= '/notls';
+    }
+    // Return the configured settings and create a connection string.
+    return '{' . $server_address . ':' . $user->data['basic_webmail_server_port'] . $imap_flags . '}';
   }
   else {
-    $imap_flags .= '/novalidate-cert';
-  }
-  if (variable_get('basic_webmail_use_tls', 0) == 1) {
-    $imap_flags .= '/tls';
-  }
-  else {
-    $imap_flags .= '/notls';
-  }
+    // Otherwise just use global settings  
+  
+    // Initialize variable.
+    $server_address = variable_get('basic_webmail_server_address', '');
 
-  // Return the configured settings and create a connection string.
-  return '{' . $server_address . ':' . variable_get('basic_webmail_server_port', '143') . $imap_flags . '}';
+    // Sanity check -- make sure the current user has done the configuration.
+    if (empty($server_address)) {
+      $message = 'The !server_settings for Basic webmail have not yet been configured. Please do that before checking your e-mail.';
+      $message_parameters = array(
+        '!server_settings' => l(t('server settings'), 'admin/settings/basic_webmail')
+      );
+      _basic_webmail_report_error($message, $message_parameters);
+      return FALSE;
+    }
+
+    // Prepare the flags for connecting to the server with.
+    $imap_flags = '';
+    if (variable_get('basic_webmail_secure_log_in', 0) == 1) {
+      $imap_flags .= '/secure';
+    }
+    if (variable_get('basic_webmail_use_ssl', 0) == 1) {
+      $imap_flags .= '/ssl';
+    }
+    if (variable_get('basic_webmail_validate_cert', 0) == 1) {
+      $imap_flags .= '/validate-cert';
+    }
+    else {
+      $imap_flags .= '/novalidate-cert';
+    }
+    if (variable_get('basic_webmail_use_tls', 0) == 1) {
+      $imap_flags .= '/tls';
+    }
+    else {
+      $imap_flags .= '/notls';
+    }
+
+    // Return the configured settings and create a connection string.
+    return '{' . $server_address . ':' . variable_get('basic_webmail_server_port', '143') . $imap_flags . '}';
+  }  
 }
 
 
@@ -168,7 +204,6 @@ function _basic_webmail_report_error($message, $message_parameters = array(), $s
  * This function takes a string from an email (subject, user name, etc.) and
  * processes it thus:
  * - It converts MIME-encoded text to UTF-8.
- * - It converts it to plain text for displaying in HTML.
  *
  * @param string $string
  *   The string to process.
@@ -181,8 +216,6 @@ function _basic_webmail_report_error($message, $message_parameters = array(), $s
 function _basic_webmail_prepare_email_string($string, $char_set = 'UTF-8') {
   // Convert the MIME-encoded string to UTF-8.
   $string = _basic_webmail_decode_mime_str($string, $char_set);
-  // Convert the string to plain-text for display as HTML.
-  $string = check_plain($string);
   return $string;
 }
 
@@ -211,7 +244,6 @@ function _basic_webmail_prepare_email_string($string, $char_set = 'UTF-8') {
 function _basic_webmail_decode_mime_str($string, $char_set = 'UTF-8') {
   $new_string = '';
   $elements = imap_mime_header_decode($string);
-
   for ($i = 0; $i < count($elements); $i++) {
     if ($elements[$i]->charset == 'default') {
       $elements[$i]->charset = 'iso-8859-1';
@@ -219,7 +251,6 @@ function _basic_webmail_decode_mime_str($string, $char_set = 'UTF-8') {
 
     $new_string .= iconv($elements[$i]->charset, $char_set, $elements[$i]->text);
   }
-
   return $new_string;
 }
 

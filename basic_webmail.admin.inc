@@ -220,6 +220,18 @@ function basic_webmail_admin_settings($form, &$form_state) {
     '#default_value' => variable_get('basic_webmail_disable_email_menu', 0),
     '#description' => t("If for some reason you don't want to display the Email menu at your navigation, you can simply check this box. Please make sure that after saving this settings, go to Configuration->Development->Performance and Clear all the caches that is also including the menu caches.")
   );
+  $form['basic_webmail_features_visibility']['basic_webmail_enable_overwrite_server_settings'] = array(
+    '#type' => 'checkbox',
+    '#title' => t("Enable user to overwrite server connection settings at user/UID/edit."),
+    '#default_value' => variable_get('basic_webmail_enable_overwrite_server_settings', 0),
+    '#description' => t("If you want let user overwrite the connection settings enable this checkbox.")
+  );
+  $form['basic_webmail_features_visibility']['basic_webmail_filter_recent_block_messages'] = array(
+    '#type' => 'checkbox',
+    '#title' => t("Enable filtering the recent block messages if you are visiting an user profile. Get the email from this profile user and filter inbox/sent messages with this email address."),
+    '#default_value' => variable_get('basic_webmail_filter_recent_block_messages', 0),
+    '#description' => t("If you want let user overwrite the connection settings enable this checkbox.")
+  );
 
   return system_settings_form($form);
 }

@@ -187,20 +187,74 @@ function _basic_webmail_form_user_form(&$form) {
     '#weight' => 1,
   );
   // If there is an existing email address specified, display it.
-  $default_value = !empty($form['#user']->data['basic_webmail_username']) ? $form['#user']->data['basic_webmail_username'] : '';
+  $username = !empty($form['#user']->data['basic_webmail_username']) ? $form['#user']->data['basic_webmail_username'] : '';
   $form['basic_webmail_email_settings']['basic_webmail_username'] = array(
     '#type' => 'textfield',
     '#title' => t('Email account login'),
-    '#default_value' => $default_value,
+    '#default_value' => $username,
     '#description' => 'The login ID of your email account.',
-//    '#required' => TRUE,
   );
   $form['basic_webmail_email_settings']['basic_webmail_password'] = array(
     '#type' => 'password_confirm',
     '#description' => 'The login password of your email account.',
   );
+  
+  // Verify if the option to allow the user overwrite the global settings is enabled
+  if(variable_get('basic_webmail_enable_overwrite_server_settings') == 1) {
+    $server_address = !empty($form['#user']->data['basic_webmail_server_address']) ? $form['#user']->data['basic_webmail_server_address'] : '';    
+    // The server set of fields for the form.
+    $form['basic_webmail_server_settings'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Basic webmail server settings - Overwrite global settings'),
+      '#collapsible' => TRUE,
+      '#collapsed' => ($server_address == '') ? TRUE : FALSE,
+      '#weight' => 2,
+    );
+    
+    $form['basic_webmail_server_settings']['basic_webmail_server_address'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Server address'),
+      '#default_value' => $server_address,
+      '#description' => t('The address to the server you wish to connect to. If you add a value in this field, this fieldset will overwrite the global settings defined by the admin.'),
+    );
+    $server_port = !empty($form['#user']->data['basic_webmail_server_port']) ? $form['#user']->data['basic_webmail_server_port'] : '143';
+    $form['basic_webmail_server_settings']['basic_webmail_server_port'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Connection port'),
+      '#size' => 10,
+      '#default_value' => $server_port,
+      '#description' => t('The default IMAP port is 143, if one is not specified. If you are using SSL, the default port number is 993. If you are using TLS, the default port number is 143.'),
+    );
+    $server_secure_login = !empty($form['#user']->data['basic_webmail_secure_log_in']) ? $form['#user']->data['basic_webmail_secure_log_in'] : 0;
+    $form['basic_webmail_server_settings']['basic_webmail_secure_log_in'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Secure login'),
+      '#default_value' => $server_secure_login,
+      '#description' => t('Check to make a secure connection to your IMAP Server.'),
+    );
+    $use_ssl = !empty($form['#user']->data['basic_webmail_use_ssl']) ? $form['#user']->data['basic_webmail_use_ssl'] : 0;
+    $form['basic_webmail_server_settings']['basic_webmail_use_ssl'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Encrypt session using SSL'),
+      '#default_value' => $use_ssl,
+      '#description' => t('Use SSL to connect to the server.'),
+    );
+    $validate_cert = !empty($form['#user']->data['basic_webmail_validate_cert']) ? $form['#user']->data['basic_webmail_validate_cert'] : 0;
+    $form['basic_webmail_server_settings']['basic_webmail_validate_cert'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Validate certificate'),
+      '#default_value' => $validate_cert,
+      '#description' => t('When using a secure connection, validate the certificate.'),
+    );
+    $use_tls = !empty($form['#user']->data['basic_webmail_use_tls']) ? $form['#user']->data['basic_webmail_use_tls'] : '143';
+    $form['basic_webmail_server_settings']['basic_webmail_use_tls'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Encrypt session using TLS'),
+      '#default_value' => $use_tls,
+      '#description' => t('Use TLS to connect to the server.'),
+    );
+  }
 }
-
 
 /**
  * Implements hook_user_presave().
@@ -208,31 +262,41 @@ function _basic_webmail_form_user_form(&$form) {
 function basic_webmail_user_presave(&$edit, $account, $category) {
   // Check to see if we need to save any information.
   if ($category == 'account' && user_access('access basic_webmail', $account)) {
-    // Initialize the variable to keep track of changes, so we don't access the
-    // mail server unnecessarily.
-    $changed = 0;
-
     // Include the file that has the encrypt and decrypt functions in it.
     include_once drupal_get_path('module', 'basic_webmail') . '/basic_webmail.common.inc';
-
+      
     // If the login ID has changed, but is not empty, save it.
     if (!empty($edit['basic_webmail_username'])) {
       if (empty($account->data['basic_webmail_username']) || ($account->data['basic_webmail_username'] != $edit['basic_webmail_username'])) {
         $edit['data']['basic_webmail_username'] = $edit['basic_webmail_username'];
-        $changed++;
       }
     }
-
-    // Becuase it's empty by default when the form is shown, if there is
+    // Because it's empty by default when the form is shown, if there is
     // anything in the password field, save it.
     if (!empty($edit['basic_webmail_password'])) {
       $edit['data']['basic_webmail_password'] = _basic_webmail_encrypt_password($edit['basic_webmail_password']);
-      $changed++;
     }
 
-    if ($changed > 0) {
-      // Subscribe to mailboxes.
-    }
+    if(variable_get('basic_webmail_enable_overwrite_server_settings') == 1) {
+      if (empty($account->data['basic_webmail_server_address']) || ($account->data['basic_webmail_server_address'] != $edit['basic_webmail_server_address'])) {
+        $edit['data']['basic_webmail_server_address'] = $edit['basic_webmail_server_address'];
+      }
+      if (empty($account->data['basic_webmail_server_port']) || ($account->data['basic_webmail_server_port'] != $edit['basic_webmail_server_port'])) {
+        $edit['data']['basic_webmail_server_port'] = $edit['basic_webmail_server_port'];
+      }
+      if (empty($account->data['basic_webmail_secure_log_in']) || ($account->data['basic_webmail_secure_log_in'] != $edit['basic_webmail_secure_log_in'])) {
+        $edit['data']['basic_webmail_secure_log_in'] = $edit['basic_webmail_secure_log_in'];
+      }
+      if (empty($account->data['basic_webmail_use_ssl']) || ($account->data['basic_webmail_use_ssl'] != $edit['basic_webmail_use_ssl'])) {
+        $edit['data']['basic_webmail_use_ssl'] = $edit['basic_webmail_use_ssl'];
+      }
+      if (empty($account->data['basic_webmail_validate_cert']) || ($account->data['basic_webmail_validate_cert'] != $edit['basic_webmail_validate_cert'])) {
+        $edit['data']['basic_webmail_validate_cert'] = $edit['basic_webmail_validate_cert'];
+      }
+      if (empty($account->data['basic_webmail_use_tls']) || ($account->data['basic_webmail_use_tls'] != $edit['basic_webmail_use_tls'])) {
+        $edit['data']['basic_webmail_use_tls'] = $edit['basic_webmail_use_tls'];
+      }
+    }  
   }
 }
 
@@ -310,7 +374,8 @@ function basic_webmail_block_view($delta) {
   $block = array();
   switch ($delta) {
     case 'basic_webmail_block':
-       if (variable_get('basic_webmail_enable_block', 0) == 1 &&  user_is_logged_in()) {
+      $uri = explode('/', $_SERVER['REQUEST_URI']);
+      if (variable_get('basic_webmail_enable_block', 0) == 1 &&  user_is_logged_in() && $uri[1] != 'basic_webmail') {
         include_once drupal_get_path('module', 'basic_webmail') . '/basic_webmail.list.inc';
         $block['subject'] = t('Webmail viewer');
         $block['content'] = _basic_webmail_block_content();
