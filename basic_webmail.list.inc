@@ -204,11 +204,13 @@ function _basic_webmail_retrieve_last_messages($num = 5) {
   
   // Verify if filtering must be done
   $from = '';
+  $is_filtering = FALSE;
   if (variable_get('basic_webmail_filter_recent_block_messages') == 1) {
     include_once drupal_get_path('module', 'basic_webmail') . '/basic_webmail.common.inc';
     $profile_mail_address = _basic_webmail_is_user_profile_page();
     if($profile_mail_address != FALSE) {
-      $from = $profile_mail_address;      
+      $from = $profile_mail_address;     
+      $is_filtering = TRUE;
     }
   }
   
@@ -219,7 +221,7 @@ function _basic_webmail_retrieve_last_messages($num = 5) {
   return array(
     'inbox' => $inbox_message_list,
     'sent' => $sent_message_list,   
-    'is_filtering' => variable_get('basic_webmail_filter_recent_block_messages'),
+    'is_filtering' => $is_filtering,
     'from' => $from,  
   );
 }
@@ -508,6 +510,12 @@ function _basic_webmail_update_stored_message_list($folder = 'INBOX') {
           } else {
             $from_address = $message->from;
           }
+          
+          if (empty($message->to)) {
+            $to_address = '';
+          } else {
+            $to_address = $message->to;
+          }
 
           // Set the message's date.
           if (empty($message->date)) {
@@ -523,6 +531,7 @@ function _basic_webmail_update_stored_message_list($folder = 'INBOX') {
                       'message_number' => $key,
                       'message_subject' => $message_subject,
                       'from_address' => $from_address,
+                      'to_address' => $to_address,
                       'message_date' => $message_date,
                       'message_unread' => $message_unread,
                       'folder' => urlencode($folder),
@@ -570,6 +579,10 @@ function _basic_webmail_get_message_list_data($header, $user_id, $folder, $limit
     $row_limit = variable_get('basic_webmail_messages_per_page', 25);
   }
   
+  $or = db_or();
+  $or->condition('from_address', '%'. $from .'%', 'LIKE');
+  $or->condition('to_address', '%'. $from .'%', 'LIKE');
+  
   // Construct and execute the database query.
   $result = db_select('basic_webmail_messages', 'm')
     ->fields('m', array(
@@ -581,7 +594,7 @@ function _basic_webmail_get_message_list_data($header, $user_id, $folder, $limit
     ))
     ->condition('user_id', $user_id, '=')
     ->condition('folder', urlencode($folder), '=')
-    ->condition('from_address', '%'. $from .'%', 'LIKE')
+    ->condition($or)
     ->extend('PagerDefault')
     ->limit($row_limit)
     ->extend('TableSort')
@@ -983,7 +996,8 @@ function _basic_webmail_process_subject($subject, $new_or_unread, $message_numbe
       $subject = truncate_utf8($subject, 255 - $link_len, TRUE, TRUE);
     }
   }
-
+  
+  $folder = str_replace('/', '\\', $folder);
   // Create a link to the message.
   $message_subject_link = l($subject, 'basic_webmail/view/' . $folder . '/' . $message_number);
 

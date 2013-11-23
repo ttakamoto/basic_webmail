@@ -35,6 +35,12 @@ function basic_webmail_schema() {
         'not null' => FALSE,
         'description' => 'Who the message is from.',
       ),
+      'to_address' => array(
+        'type' => 'varchar',
+        'length' => 256,
+        'not null' => FALSE,
+        'description' => 'message destination.',
+      ),
       'message_date' => array(
         'type' => 'varchar',
         'length' => 64,

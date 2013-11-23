@@ -18,7 +18,7 @@
  */
 function basic_webmail_message($folder, $message_number) {
   $output = '';
-
+  $folder = str_replace('\\', '/', $folder);
   // Connect to the server and retrieve a connection to the mailbox.
   include_once drupal_get_path('module', 'basic_webmail') . '/basic_webmail.common.inc';
   global $user;
