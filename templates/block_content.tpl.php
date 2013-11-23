@@ -33,6 +33,12 @@
  */
 
 ?>
+<?php
+  if (!isset($is_filtering)) $is_filtering = 0;
+  if (!isset($from)) $from = '';
+  if (!isset($inbox)) $inbox = array();
+  if (!isset($sent)) $sent = array();
+?>
 <style>
   #block-basic-webmail-basic-webmail-block li a{
     float:none;
